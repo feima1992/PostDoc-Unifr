@@ -1,6 +1,6 @@
 function GetACTinfo(obj)
 % find all the ACT files in the analysis folder
-actFiles = WF.Helper.FindFiles(obj.p.folder,{'.mat','_ACT'},{},'table_out',true);
+actFiles = WF.Helper.FindFiles(obj.p.folder,{'.mat','ACT'},{'diff'},'table_out',true);
 
 % functions to extract information from the file folder or name
 FindMouse = @(X)regexp(X,'[a-zA-Z]\d{4}(?=_)','match','once');
@@ -24,5 +24,9 @@ groupInfo.mosueID = cellfun(@(X)str2double(X(2:end)),groupInfo.mouse);
 actFiles = outerjoin(actFiles,groupInfo,'Keys',{'mouse','mouseID','sessionID'},'MergeKeys',true,'Type','left');
 % clean up the table to keep only the relevant columns
 actFiles = actFiles(:,{'mouse','session','mouseID','sessionID','sessionNumID','group','treatment','treatmentID','mvtDir','path'});
-% 
+% remove the columns with NaN
+actFiles = actFiles(:,~any(ismissing(actFiles),1));
+% seperate raw act and regestrated act
+obj.ACTinfo.raw = actFiles(cellfun(@(X)contains(X,'ACT.mat'),actFiles.path),:);
+obj.ACTinfo.reg = actFiles(cellfun(@(X)contains(X,'REG.mat'),actFiles.path),:);
 end
