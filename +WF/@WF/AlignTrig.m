@@ -77,6 +77,8 @@ switch data.stimType_filesWF{1}
                 data = data(idx,:);
             end
         end
+    case 'vibration'
+        data = data(data.outcomeIdx>=3,:);
 end
 % sort data by trialID
 data = sortrows(data,'trialID');
