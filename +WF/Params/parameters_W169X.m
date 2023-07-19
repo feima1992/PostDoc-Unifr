@@ -61,7 +61,7 @@ p.select.stimType.whisker = 0; % whisker session
 
 % animal to be analysed
 p.select.animal.proprioception = {};
-p.select.animal.vibration = {'w1693','w1696','w1699','w1694','w1698','w1672'};
+p.select.animal.vibration = {'w1093','w1193','w1293','w1393','w1493','w1593','w1693','w1094','w1194','w1294','w1394','w1494','w1594','w1694'};
 p.select.animal.whisker = {};
 
 % sessions to be analysed

@@ -7,6 +7,9 @@ arguments
     obj
     options.overwrite (1,1) logical = false
 end
+if isempty(obj.ACTinfo)
+    obj.GetACTinfo();
+end
 % calculate detaFoverF for raw and reg act
 actType = fieldnames(obj.ACTinfo);
 for i = 1:length(actType)

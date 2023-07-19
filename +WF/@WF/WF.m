@@ -11,6 +11,7 @@ classdef WF < handle
         BpodInfo % information of Bpod files
         BpodWFInfo % information of the joint Bpod and WF files
         ACTinfo % information of the act files
+        CoordPixels % coordinates of each pixels refer to bregma in mm
         TrialsCount % information of the trial count for act map
         callCount % count the call number of a method
     end
