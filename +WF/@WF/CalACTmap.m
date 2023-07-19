@@ -15,6 +15,7 @@ function CalACTmap(obj)
             case 1 % calculate act map of each movement direction
                 folderName = obj.p.folderName;
                 for i = 1:8
+                    fprintf('Calculating act map of movement direction %d\n',i)
                     obj.GetParams('updateFolder',fullfile(folderName,['MvtDir', num2str(i)]))
                     obj.p.select.trial.proprioception.moveDirection = i;
                     obj.p.act.flag.mapForEachMvtDir = true;

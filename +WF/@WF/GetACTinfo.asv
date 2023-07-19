@@ -23,7 +23,7 @@ groupInfo.mosueID = cellfun(@(X)str2double(X(2:end)),groupInfo.mouse);
 % join the two tables, actFiles as base, with left join
 actFiles = outerjoin(actFiles,groupInfo,'Keys',{'mouse','mouseID','sessionID'},'MergeKeys',true,'Type','left');
 % clean up the table to keep only the relevant columns
-actFiles = actFiles(:,{'mouse','session','mouseID','sessionID','sessionNumID','group','treatment','treatmentID','mvtDir','path','folder'});
+actFiles = actFiles(:,{'mouse','session','mouseID','sessionID','sessionNumID','group','treatment','treatmentID','mvtDir','path','fo'});
 % remove the columns with NaN
 actFiles = actFiles(:,~any(ismissing(actFiles),1));
 % seperate raw act and regestrated act
