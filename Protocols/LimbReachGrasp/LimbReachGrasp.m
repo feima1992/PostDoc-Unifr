@@ -39,16 +39,24 @@ function LimbReachGrasp
         S.GUI.RemoveWater_T = 0.12; % How long the water valve opens to remove water droplet in case of no grasp
         S.GUI.Beep_T = 0.3; % How long the beep lasts to indicate reward delivery
         
-        S.GUI.Withhold_T = 3;    % Pre-reward withhold duration when mouse is required not to rechout the slit
-        S.GUI.RespondWin_T = 5;    % Time window waiting for mouse to reach or grasp
-        S.GUI.GraspDetect_T = 1;   % Time window to detect continuous grasp of the water droplet
+        S.GUI.GraspMustReach = 1;
+        S.GUIMeta.GraspMustReach.Style = 'checkbox';
+        S.GUI.MergeReach_T = 0.1; % Merge reaches detected that close enough (threshould)
+        
+        S.GUI.WithholdWin_T = 3;    % Pre-reward withhold duration when mouse is required not to rechout the slit
+        S.GUI.ReachWin_T = 5;    % Time window waiting for mouse to reach or grasp
+        S.GUI.GraspWin_T = 1;   % Time window to detect grasp of the water droplet (timer starts from the first detected grasp)
+        S.GUI.GraspWin_Type = 1;
+        S.GUIMeta.GraspWin_Type.Style = 'popupmenu';
+        S.GUIMeta.GraspWin_Type.String = {'Absolute', 'Interval'};
         
         S.GUI.StartProtocol = 'startFunction'; % Start protocol button
         S.GUIMeta.StartProtocol.Style = 'pushbutton';
 
         S.GUIPanels.CueAndReward = {'WaterPulse_T', 'RemoveWater_T', 'Beep_T'};
-        S.GUIPanels.TaskParameters = {'Withhold_T', 'RespondWin_T', 'GraspDetect_T'};
+        S.GUIPanels.TaskParameters = {'WithholdWin_T', 'ReachWin_T', 'GraspWin_T','GraspWin_Type'};
         S.GUIPanels.TaskInformation = {'TrialNum', 'TrialNumAttempt', 'TrialNumSuccess', 'StartProtocol'};   
+        S.GUIPanels.PlotParameters = {'GraspMustReach','MergeReach_T'};
     end
     
     %% Define trial/data variables
@@ -69,8 +77,9 @@ function LimbReachGrasp
     BpodSystem.Data.trialOutcomes.Outcome = cell(MaxTrials,1);
     BpodSystem.Data.trialOutcomes.OutcomeIdx = [];
     
-    BpodSystem.Data.Flags.startProtocol = 0;    
-    %--- Initialize plots and start USB connections to any modules
+    BpodSystem.Data.Flags.startProtocol = 0;
+
+    %% Initialize plots and start USB connections to any modules
     
     nPlottedTrials = 100;  
     nWindow = 20;
@@ -98,18 +107,18 @@ function LimbReachGrasp
     BpodSystem.GUIHandles.ReachGraspAxes = axes('Parent', BpodSystem.ProtocolFigures.ReachGraspFig);
     BpodSystem.GUIHandles.ReachGraspAxes.Box = 'off';
     BpodSystem.GUIHandles.ReachGraspAxes.YAxis.Visible = 'off';
-    for i = 1:20
+    for i = 1:50
         BpodSystem.GUIHandles.(['ReachPlotsP',num2str(i)]) = patch(BpodSystem.GUIHandles.ReachGraspAxes, [nan,nan,nan,nan], [0 1 1 0],'g','FaceAlpha',0.5,'EdgeColor','none');
     end
-    for i = 1:20
+    for i = 1:50
         BpodSystem.GUIHandles.(['GraspPlotsP',num2str(i)]) = patch(BpodSystem.GUIHandles.ReachGraspAxes, [nan,nan,nan,nan], [0 1 1 0],'r','FaceAlpha',0.5,'EdgeColor','none');
     end
     BpodSystem.GUIHandles.ReachGraspAxes.XLabel.String = 'Time (s)';
-    % legend only the first two patches
     legend([BpodSystem.GUIHandles.ReachPlotsP1,BpodSystem.GUIHandles.GraspPlotsP1],{'Reach','Grasp'},'Location','bestoutside');
 
-    BpodParameterGUI('init', S); % Initialize parameter GUI plugin
-    
+    % Initialize parameter GUI plugin
+    BpodParameterGUI('init', S); 
+
     %% Create an instance of the wavePlayer module
     W = BpodWavePlayer(WavePlayerUSB);
     
@@ -167,16 +176,18 @@ function LimbReachGrasp
         
         %% Assemble state machine
         sma = NewStateMachine();
+        sma = SetGlobalTimer(sma, 'TimerID', 1, 'Duration', S.GUI.ReachWin_T); % Reach window timer
+        sma = SetGlobalTimer(sma, 'TimerID', 2, 'Duration', S.GUI.GraspWin_T); % Grasp window timer
 
         %% Start trial, start the trial by sending a trigger to start camera recording
         sma = AddState(sma, 'Name', 'StartTrial', ... 
         'Timer', 0.5,...
         'StateChangeConditions', {'Tup', 'WithholdReach'},...
-        'OutputActions', {'Wire1', 1});
+        'OutputActions', {});
 
         %% Withhold, before giving reward, mouse is required not to rechout the slit
         sma = AddState(sma, 'Name', 'WithholdReach', ...
-        'Timer', S.GUI.Withhold_T,...
+        'Timer', S.GUI.WithholdWin_T,...
         'StateChangeConditions', {'Tup', 'GiveReward', 'Port4In', 'WithholdReachReset'},...
         'OutputActions', {});
         sma = AddState(sma, 'Name', 'WithholdReachReset', ...
@@ -184,41 +195,52 @@ function LimbReachGrasp
         'StateChangeConditions', {'Tup','WithholdReach'},...
         'OutputActions', {});
 
-        %% Reward states, give reward and beep
+        %% Reward states, give reward and beep and trigger camera recording
         sma = AddState(sma, 'Name', 'GiveReward', ... 
             'Timer', S.GUI.WaterPulse_T,...
-            'StateChangeConditions', {'Tup', 'RewardBeep','Port4In', 'Reach'},...
-            'OutputActions', {'Valve2', 1,'PWM2', 255});
+            'StateChangeConditions', {'Tup', 'RewardBeep','Port4In', 'WaitForGrasp','Port3In', 'Grasp'},...
+            'OutputActions', {'Valve2', 1,'PWM2', 255,'Wire1', 1, 'GlobalTimerTrig', 1});
         sma = AddState(sma, 'Name', 'RewardBeep', ...
             'Timer',  S.GUI.Beep_T-S.GUI.WaterPulse_T,...
-            'StateChangeConditions', {'Tup', 'WaitForReach','Port4In', 'Reach'},...
+            'StateChangeConditions', {'Tup', 'WaitForReach','Port4In', 'WaitForGrasp','Port3In', 'Grasp'},...
             'OutputActions', {'PWM2', 255});
 
         %% Mouse reach out the slit
         sma = AddState(sma, 'Name', 'WaitForReach', ...
-        'Timer',S.GUI.RespondWin_T,...
-        'StateChangeConditions', {'Tup', 'RemoveWaterDroplet','Port4In', 'Reach'},...
-        'OutputActions', {});
-        sma = AddState(sma, 'Name', 'Reach', ...
-        'Timer', 0.1,...
-        'StateChangeConditions', {'Tup', 'WaitForGrasp','Port3In','Grasp'},...
-        'OutputActions', {});
-        
-        %% Grasp water, mouse grasped the water droplet
-        sma = AddState(sma, 'Name', 'WaitForGrasp', ...
-        'Timer',S.GUI.RespondWin_T,...
-        'StateChangeConditions', {'Tup', 'RemoveWaterDroplet','Port3In','Grasp'},...
-        'OutputActions', {});
-    
-        sma = AddState(sma, 'Name', 'Grasp', ...
-        'Timer',S.GUI.GraspDetect_T/2,...
-        'StateChangeConditions', {'Tup', 'GraspStop'},...
-        'OutputActions', {});
-        sma = AddState(sma, 'Name', 'GraspStop', ...
-        'Timer', S.GUI.GraspDetect_T/2,...
-        'StateChangeConditions', {'Tup','PreFinalState','Port3In','Grasp'},...
+        'Timer',0,...
+        'StateChangeConditions', {'GlobalTimer1_End', 'RemoveWaterDroplet','Port4In', 'WaitForGrasp','Port3In', 'Grasp'},...
         'OutputActions', {});
 
+        %% Grasp water, mouse grasped the water droplet
+        sma = AddState(sma, 'Name', 'WaitForGrasp', ...
+        'Timer',0,...
+        'StateChangeConditions', {'GlobalTimer1_End', 'RemoveWaterDroplet','Port4Out','WaitForReach','Port3In','Grasp'},...
+        'OutputActions', {});
+        
+        switch S.GUI.GraspWin_Type
+            case 2
+                sma = AddState(sma, 'Name', 'Grasp', ...
+                'Timer',0,...
+                'StateChangeConditions', {'Port3Out', 'GraspReset'},...
+                'OutputActions', {'GlobalTimerTrig', 2});
+                sma = AddState(sma, 'Name', 'GraspReset', ...
+                'Timer', 0,...
+                'StateChangeConditions', {'Port3In','Grasp','GlobalTimer2_End','PreFinalState'},...
+                'OutputActions', {});
+            case 1
+                sma = AddState(sma, 'Name', 'Grasp', ...
+                'Timer',0,...
+                'StateChangeConditions', {'Tup', 'GraspHelper'},...
+                'OutputActions', {'GlobalTimerTrig', 2});
+                sma = AddState(sma, 'Name', 'GraspHelper', ...
+                'Timer',0,...
+                'StateChangeConditions', {'Port3Out', 'GraspReset','GlobalTimer2_End','PreFinalState'},...
+                'OutputActions', {});
+                sma = AddState(sma, 'Name', 'GraspReset', ...
+                'Timer', 0,...
+                'StateChangeConditions', {'Port3In','GraspHelper','GlobalTimer2_End','PreFinalState'},...
+                'OutputActions', {});
+        end
         
         %% Remove water droplet, remove the water droplet in case of no grasp
        sma = AddState(sma, 'Name', 'RemoveWaterDroplet', ...
@@ -245,10 +267,14 @@ function LimbReachGrasp
             BpodSystem.Data = AddTrialEvents(BpodSystem.Data,RawEvents); % Adds raw events to a human-readable data struct
             BpodSystem.Data.TrialSettings(currentTrial) = S; % Adds the settings used for the current trial to the Data struct (to be saved after the trial ends)
             
-            trialOutcome = [num2str(~isnan(BpodSystem.Data.RawEvents.Trial{1,currentTrial}.States.Reach(1))),....
+            trialOutcome = [num2str(~isnan(BpodSystem.Data.RawEvents.Trial{1,currentTrial}.States.WaitForGrasp(1))),....
                 num2str(~isnan(BpodSystem.Data.RawEvents.Trial{1,currentTrial}.States.Grasp(1)))];
             switch trialOutcome
                 case '11'
+                    outcomeIdx = 3;
+                    S.GUI.TrialNumSuccess = S.GUI.TrialNumSuccess + 1;
+                    S.GUI.TrialNumAttempt = S.GUI.TrialNumAttempt + 1;
+                case '01'
                     outcomeIdx = 3;
                     S.GUI.TrialNumSuccess = S.GUI.TrialNumSuccess + 1;
                     S.GUI.TrialNumAttempt = S.GUI.TrialNumAttempt + 1;
@@ -298,7 +324,7 @@ function LimbReachGrasp
             
             % reach and grasp plot
             % reset all patches
-            for kk = 1:20
+            for kk = 1:50
                 set(BpodSystem.GUIHandles.(['ReachPlotsP',num2str(kk)]), 'xdata', [nan,nan,nan,nan]);
                 set(BpodSystem.GUIHandles.(['GraspPlotsP',num2str(kk)]), 'xdata', [nan,nan,nan,nan]);
             end
@@ -318,7 +344,7 @@ function LimbReachGrasp
                     graspEndTimes = nan;
                 end
                 startTimes = BpodSystem.Data.RawEvents.Trial{1,currentTrial}.States.RewardBeep(2);
-                endTimes = max(BpodSystem.Data.RawEvents.Trial{1,currentTrial}.States.GraspStop(:));
+                endTimes = max(BpodSystem.Data.RawEvents.Trial{1,currentTrial}.States.GraspReset(:));
                 reachStartTimes = reachStartTimes(reachStartTimes<endTimes & reachStartTimes>startTimes);
                 reachEndTimes = reachEndTimes(reachEndTimes<endTimes & reachEndTimes>startTimes);
                 graspStartTimes = graspStartTimes(graspStartTimes<endTimes & graspStartTimes>startTimes);
@@ -329,10 +355,36 @@ function LimbReachGrasp
                 if length(graspStartTimes) > length(graspEndTimes)
                     graspEndTimes = [graspEndTimes, endTimes];       
                 end
-                for ii = 1:min(length(reachStartTimes),20)
+                
+                % assume reach based on grasp
+                if S.GUI.GraspMustReach
+                    reachStartTimes = sort([reachStartTimes,graspStartTimes]);
+                    reachEndTimes = sort([reachEndTimes,graspEndTimes]);
+                end
+                % megre consective reaches if they are close enough
+                if S.GUI.MergeReach_T > 0
+                    for i = 1:length(reachStartTimes)
+                        if i == 1
+                            newReachStartTimes = reachStartTimes(i);
+                            newReachEndTimes = reachEndTimes(i);
+                        else
+                            if reachStartTimes(i) - newReachEndTimes(end) < S.GUI.MergeReach_T
+                                newReachEndTimes(end) = reachEndTimes(i);
+                            else
+                                newReachStartTimes = [newReachStartTimes,reachStartTimes(i)];
+                                newReachEndTimes = [newReachEndTimes,reachEndTimes(i)];
+                            end
+                        end
+                    end
+                    reachStartTimes = newReachStartTimes;
+                    reachEndTimes = newReachEndTimes;
+                end
+
+
+                for ii = 1:min(length(reachStartTimes),50)
                     set(BpodSystem.GUIHandles.(['ReachPlotsP',num2str(ii)]), 'xdata', [reachStartTimes(ii), reachStartTimes(ii), reachEndTimes(ii), reachEndTimes(ii)]);
                 end
-                for jj = 1:min(length(graspStartTimes),20)
+                for jj = 1:min(length(graspStartTimes),50)
                     set(BpodSystem.GUIHandles.(['GraspPlotsP',num2str(jj)]), 'xdata', [graspStartTimes(jj), graspStartTimes(jj), graspEndTimes(jj), graspEndTimes(jj)]);
                 end
             case 2
@@ -348,7 +400,27 @@ function LimbReachGrasp
                 if length(reachStartTimes) > length(reachEndTimes)
                     reachEndTimes = [reachEndTimes, endTimes];       
                 end
-                for ii = 1:min(length(reachStartTimes),20)
+                
+                                % megre consective reaches if they are close enough
+                if S.GUI.MergeReach_T > 0
+                    for i = 1:length(reachStartTimes)
+                        if i == 1
+                            newReachStartTimes = reachStartTimes(i);
+                            newReachEndTimes = reachEndTimes(i);
+                        else
+                            if reachStartTimes(i) - newReachEndTimes(end) < S.GUI.MergeReach_T
+                                newReachEndTimes(end) = reachEndTimes(i);
+                            else
+                                newReachStartTimes = [newReachStartTimes,reachStartTimes(i)];
+                                newReachEndTimes = [newReachEndTimes,reachEndTimes(i)];
+                            end
+                        end
+                    end
+                    reachStartTimes = newReachStartTimes;
+                    reachEndTimes = newReachEndTimes;
+                end
+                
+                for ii = 1:min(length(reachStartTimes),50)
                     set(BpodSystem.GUIHandles.(['ReachPlotsP',num2str(ii)]), 'xdata', [reachStartTimes(ii), reachStartTimes(ii), reachEndTimes(ii), reachEndTimes(ii)]);
                 end
             end
