@@ -5,7 +5,7 @@ classdef WF < handle
     
     %% WF class properties
     properties
-        pName = 'basic' % name of param file to be used
+        pName = 'basic' % name of parameter file to be used
         p % params
         WFinfo % information of WF tif files
         BpodInfo % information of Bpod files
@@ -14,6 +14,8 @@ classdef WF < handle
         CoordPixels % coordinates of each pixels refer to bregma in mm
         TrialsCount % information of the trial count for act map
         callCount % count the call number of a method
+        ROImask
+        Plot
     end
     
     %% WF class methods
