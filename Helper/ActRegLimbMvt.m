@@ -1,2 +1,0 @@
-classdef ActRegLimbMvt< handle
-end
