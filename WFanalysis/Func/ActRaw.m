@@ -78,6 +78,10 @@ classdef ActRaw< handle
                 set(findobj('Name', 'WF registration'), 'Position', guiPosition);
                 waitfor(objReg, 'objButtonRegFlag', 1);
             end
+
+            % close all and notify user
+            close all
+            fprintf('   Registration complete\n')
         end
     end
 

@@ -34,11 +34,28 @@ classdef FileTableTifWf< FileTableTif
                 obj.fileTable.duration(idxNanDuration(i)) = loadTifDuration(obj.fileTable.path{idxNanDuration(i)});
                 % Save the temp file every 50 trials duration were added to the temp file
                 if mod(i,50) == 0
-                    writetable(obj.fileTable(:,{'mouse', 'session', 'trial', 'duration'}), Param().path.fileTableTifWfTemp, 'Delimiter', '\t');
+                    % update the temp file
+                    temp = outerjoin(temp, obj.fileTable(:,{'mouse', 'session', 'trial', 'duration'}), 'Keys', {'mouse', 'session', 'trial'}, 'MergeKeys', true);
+                    % comine columns duration_temp and duration_right, keep the non-NaN value
+                    temp.duration = temp.duration_temp;
+                    temp.duration(isnan(temp.duration)) = temp.duration_right(isnan(temp.duration));
+                    % remove columns duration_temp and duration_right
+                    temp.duration_temp = []; temp.duration_right = [];
+                    % save the temp file
+                    writetable(temp, Param().path.fileTableTifWfTemp, 'Delimiter', '\t');
                 end
             end
+
             % Save the temp file after all trials were added to the temp file
-            writetable(obj.fileTable(:,{'mouse', 'session', 'trial', 'duration'}), Param().path.fileTableTifWfTemp, 'Delimiter', '\t');
+            % update the temp file
+            temp = outerjoin(temp, obj.fileTable(:,{'mouse', 'session', 'trial', 'duration'}), 'Keys', {'mouse', 'session', 'trial'}, 'MergeKeys', true);
+            % comine columns duration_temp and duration_right, keep the non-NaN value
+            temp.duration = temp.duration_temp;
+            temp.duration(isnan(temp.duration)) = temp.duration_right(isnan(temp.duration));
+            % remove columns duration_temp and duration_right
+            temp.duration_temp = []; temp.duration_right = [];
+            % save the temp file
+            writetable(temp, Param().path.fileTableTifWfTemp, 'Delimiter', '\t');
         end
 
         %% RemoveLongTrial

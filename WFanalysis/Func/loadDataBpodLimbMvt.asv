@@ -22,7 +22,7 @@ function trialInfo = loadDataBpodLimbMvtHelper(data)
     tFinalState = cellfun(@(X)X.States.FinalState(1, 1), data.RawEvents.Trial, 'UniformOutput', true);
     trialInfo(:, 7) = num2cell(tFinalState - tTriggerCAMLED);
     % pre assign pawHoldGood with NaN
-    trialInfo(:, 8) = num2cell(zeros(data.nTrials, 1));
+    trialInfo(:, 8) = NaN(data.nTrials, 1);
     % table of output
     trialInfo = cell2table(trialInfo, 'VariableNames', {'trial', 't1stMvt', 't2ndMvt', 'outcome', 'outcomeIdx', 'mvtDir', 'duration', 'pawHoldGood'});
     % add pawJitter detection results

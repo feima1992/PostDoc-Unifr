@@ -6,6 +6,7 @@ classdef ParamLimbMvt < Param
             obj.select.stimId = 1;
             obj.select.trial.outcome = [3, 4, 5];
             obj.select.trial.mvtDir = [1, 2, 3, 4, 5, 6, 7, 8];
+            obj.select.trial.pawHoldGood = [0, 1];
         end
        
     end

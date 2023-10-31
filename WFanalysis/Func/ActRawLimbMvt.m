@@ -26,6 +26,10 @@ classdef ActRawLimbMvt< ActRaw
             if ~isempty(obj.param.select.trial.mvtDir)
                 obj.wfBpodTable = filterRow(obj.wfBpodTable, 'mvtDir', obj.param.select.trial.mvtDir);
             end
+            % select trial by pawHoldGood
+            if ~isempty(obj.param.select.trial.pawHoldGood)
+                obj.wfBpodTable = filterRow(obj.wfBpodTable, 'pawHoldGood', obj.param.select.trial.pawHoldGood);
+            end
         end
     end
 

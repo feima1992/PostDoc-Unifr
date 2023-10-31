@@ -46,6 +46,10 @@ function files = findFile(top_dir, varargin)
         error('The top directory does not exist');
     end
 
+    % set P.Results.search_method to 'regexp' if P.Results.include and P.Results.exclude both are regular expression strings
+    if ischar(P.include) && ischar(P.exclude)
+        P.search_method = 'regexp';
+    end
     %% Find the all the files in the directory tree
     if P.search_subdirs
         files_dirs = dir(fullfile(P.top_dir, '**', '*'));
