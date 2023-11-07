@@ -55,6 +55,9 @@ classdef FileTableAct < FileTable
 
         %% Function load deltaFoverF
         function obj = LoadDeltaFoverF(obj, varargin)
+            % Calculate deltaFoverF if it is not already done
+            fprintf('   Calculating deltaFoverF\n')
+            obj.CalDeltaFoverF(varargin{:});
             % Notify the user that files are being loaded
             fprintf('   Loading deltaFoverF from %d files\n', height(obj.fileTable))
             tic;
@@ -62,6 +65,16 @@ classdef FileTableAct < FileTable
             obj.fileTable = loadDeltaFoverF(obj.fileTable, varargin{:});
             % Notify the user that loading is done and how long it took
             fprintf('   Loading deltaFoverF from %d files took %.2f seconds\n', height(obj.fileTable), toc)
+        end
+        
+        function obj = LoadIMcorr(obj, varargin)
+            % Notify the user that files are being loaded
+            fprintf('   Loading IMcorr from %d files\n', height(obj.fileTable))
+            tic;
+            % Load deltaFoverF
+            obj.fileTable = loadIMcorr(obj.fileTable, varargin{:});
+            % Notify the user that loading is done and how long it took
+            fprintf('   Loading IMcorr from %d files took %.2f seconds\n', height(obj.fileTable), toc)
         end
     end
 

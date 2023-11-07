@@ -45,7 +45,7 @@ function calDeltaFoverFhelper(filePath, varargin)
         deltaFoverF = (im - meanFbaseline) ./ meanFbaseline;
 
         % save the result
-        save(filePath, 'deltaFoverF', '-append', '-v7.3');
+        save(filePath, 'deltaFoverF', '-append');
 
         % display the progress
         fprintf('   DeltaFoverF calculated: %s\n', filePath);

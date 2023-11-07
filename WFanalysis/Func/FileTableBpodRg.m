@@ -12,6 +12,8 @@ classdef FileTableBpodRg < FileTableBpod
         %% Load file
         function LoadFile(obj)
             LoadFile@FileTableBpod(obj);
+            obj.fileTable = loadDataBpodRg(obj.fileTable);
+            obj.fileTable = expendColumn(obj.fileTable, 'data');
         end
     end
 end

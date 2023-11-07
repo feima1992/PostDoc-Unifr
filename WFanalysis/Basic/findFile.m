@@ -50,6 +50,7 @@ function files = findFile(top_dir, varargin)
     if ischar(P.include) && ischar(P.exclude)
         P.search_method = 'regexp';
     end
+
     %% Find the all the files in the directory tree
     if P.search_subdirs
         files_dirs = dir(fullfile(P.top_dir, '**', '*'));
@@ -126,12 +127,30 @@ function files = findFile(top_dir, varargin)
                 error('The exclude parameter must be a regular expression string');
             end
 
-            if P.match_case
-                include_idx = cellfun(@(x) ~isempty(regexp(x, P.include, 'once')), cell_for_filtering);
-                exclude_idx = cellfun(@(x) ~isempty(regexp(x, P.exclude, 'once')), cell_for_filtering);
-            else
-                include_idx = cellfun(@(x) ~isempty(regexp(lower(x), lower(P.include), 'once')), cell_for_filtering);
-                exclude_idx = cellfun(@(x) ~isempty(regexp(lower(x), lower(P.exclude), 'once')), cell_for_filtering);
+            % if include is empty, then include all files
+            include_idx = ones(size(cell_for_filtering));
+
+            if ~isempty(P.include)
+
+                if P.match_case
+                    include_idx = cellfun(@(x) ~isempty(regexp(x, P.include, 'once')), cell_for_filtering);
+                else
+                    include_idx = cellfun(@(x) ~isempty(regexp(lower(x), lower(P.include), 'once')), cell_for_filtering);
+                end
+
+            end
+
+            % if exclude is empty, then exclude no files
+            exclude_idx = zeros(size(cell_for_filtering));
+
+            if ~isempty(P.exclude)
+
+                if P.match_case
+                    exclude_idx = cellfun(@(x) ~isempty(regexp(x, P.exclude, 'once')), cell_for_filtering);
+                else
+                    exclude_idx = cellfun(@(x) ~isempty(regexp(lower(x), lower(P.exclude), 'once')), cell_for_filtering);
+                end
+
             end
 
     end
@@ -162,6 +181,7 @@ function files = findFile(top_dir, varargin)
     if P.table_output && ~isempty(files)
         files = struct2table(files);
     end
+
     % warning if no files were found
     if isempty(files)
         warning('No files were found');
