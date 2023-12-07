@@ -15,11 +15,11 @@ function imshowMultiFrames(frameCell, options)
     % if flow, plot use tiledlayout
     if options.flow
         % create tiledlayout
-        tiledlayout('flow', 'TileSpacing', 'none', 'Padding', 'none');
+        tiledlayout('flow', 'TileSpacing', 'compact', 'Padding', 'compact');
         % plot frames
         for iFrame = 1:nFrames
             % show progress as i/total
-            fprintf('Plotting frame %d/%d\n', iFrame, nFrames);
+            % fprintf('Plotting frame %d/%d\n', iFrame, nFrames);
             % plot frame
             nexttile;
             imshowFrame(frameCell{iFrame}, ...

@@ -1,14 +1,15 @@
-classdef FileTableTif< FileTable
+classdef FileTable_Tif< FileTable
 %% Methods
     methods
         %% Constructor
-        function obj = FileTableTif(topDir, varargin)
+        function obj = FileTable_Tif(topDir, varargin)
             if nargin < 1
                 topDir = 'D:\';
             end
             obj = obj@FileTable(topDir, varargin{:});
             obj.Filter('path',@(X)contains(X,'.tif'));
             obj.Remove('path',@(X)contains(X,'FakeSubject'));
+            obj.Remove('path',@(X)contains(X,'unMatchTrials'));
             obj.AddTrial();
             obj.MoveToSessionFolder();
             obj.fileTable.path = obj.fileTable.targetPath;

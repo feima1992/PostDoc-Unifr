@@ -55,6 +55,15 @@ classdef FileTable < handle
             obj.fileTable = cleanVar(obj.fileTable, varargin{:});
         end
 
+        %% Export the fileTable to a csv file
+        function obj = ExportCsv(obj, csvFile)
+            if nargin < 2
+                csvFile = fullfile(pwd, 'fileTable.csv');
+            end
+            % Export the fileTable to a csv file
+            writetable(obj.fileTable, csvFile);
+        end
+
     end
 
 end

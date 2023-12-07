@@ -1,17 +1,17 @@
-classdef FileTableBpodWhiskerMagnet < FileTableBpod
+classdef FileTable_Bpod_WhiskerMagnet < FileTable_Bpod
 
     %% Methods
     methods
         %% Constructor
-        function obj = FileTableBpodWhiskerMagnet(varargin)
+        function obj = FileTable_Bpod_WhiskerMagnet(varargin)
             % Call superclass constructor
-            obj = obj@FileTableBpod(varargin{:});
+            obj = obj@FileTable_Bpod(varargin{:});
             % Filter Row by stimulus type
             obj.Filter('stimulusType','WhiskerMagnetWF');
         end
         %% Load file
         function LoadFile(obj)
-            LoadFile@FileTableBpod(obj)
+            LoadFile@FileTable_Bpod(obj)
             obj.fileTable = loadDataBpodWhiskerMagnet(obj.fileTable);
             obj.fileTable = expendColumn(obj.fileTable, 'data');
         end

@@ -1,8 +1,8 @@
 function filesWfBpod = alignWfBpod(filesWfBpod, P)
 
     % get session information
-    mouse = filesWfBpod.mouse{1}; 
-    session = filesWfBpod.session{1}; 
+    mouse = filesWfBpod.mouse{1};
+    session = filesWfBpod.session{1};
     stimType = filesWfBpod.stimulusType{1};
     matSavePath = filesWfBpod.pathActRawMat{1};
     tifSavePath = filesWfBpod.pathActRawTif{1};
@@ -67,7 +67,7 @@ function filesWfBpod = alignWfBpod(filesWfBpod, P)
 
         % align with the trigger
         switch stimType
-            case 'LimbMvtTriggerWF'
+            case {'LimbMvtTriggerWF', 'LimbMvtTriggerWFopto'}
 
                 switch P.select.stimId
                     case 1
@@ -136,6 +136,7 @@ function filesWfBpod = alignWfBpod(filesWfBpod, P)
     % generate activation map
     IMcorrNorm = (IMcorr - min(IMcorr(:))) / (max(IMcorr(:)) - min(IMcorr(:)));
     IMcorrNorm = imgaussfilt(IMcorrNorm, 2);
+
     % apply masks
     if P.wfAlign.reUseMask
         load(P.path.roiMaskForAlignTrig, 'imMask');
@@ -151,6 +152,7 @@ function filesWfBpod = alignWfBpod(filesWfBpod, P)
         save(P.path.roiMask, 'imMask');
     end
 
+    % save activation map
     IMcorrNorm(~repmat(imMask, [1 1 size(IMcorrNorm, 3)])) = nan;
     peakFrame = IMcorrNorm(:, :, 28);
     threshold = mean(peakFrame, "all", "omitnan") + 1.96 * std(peakFrame, 0, "all", "omitnan");
@@ -158,7 +160,8 @@ function filesWfBpod = alignWfBpod(filesWfBpod, P)
     im = ind2rgb(im2uint8(peakFrame), fire(256));
 
     switch stimType
-        case 'LimbMvtTriggerWF'
+        case {'LimbMvtTriggerWF', 'LimbMvtTriggerWFopto'}
+
             switch P.select.stimId
                 case 1
                     save(matSavePath, 'P', 'imAvgBlue', 'imAvgViolet', 'IMcorr', 'imMask', 't', 'filesWfBpod');

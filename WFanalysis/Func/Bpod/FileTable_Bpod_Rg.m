@@ -1,17 +1,17 @@
-classdef FileTableBpodRg < FileTableBpod
+classdef FileTable_Bpod_Rg < FileTable_Bpod
 
     %% Methods
     methods
         %% Constructor
-        function obj = FileTableBpodRg(varargin)
+        function obj = FileTable_Bpod_Rg(varargin)
             % Call superclass constructor
-            obj = obj@FileTableBpod(varargin{:});
+            obj = obj@FileTable_Bpod(varargin{:});
             % Filter Row by stimulus type
             obj.Filter('stimulusType','LimbReachGrasp');
         end
         %% Load file
         function LoadFile(obj)
-            LoadFile@FileTableBpod(obj);
+            LoadFile@FileTable_Bpod(obj);
             obj.fileTable = loadDataBpodRg(obj.fileTable);
             obj.fileTable = expendColumn(obj.fileTable, 'data');
         end

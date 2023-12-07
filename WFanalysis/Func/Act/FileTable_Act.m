@@ -1,8 +1,8 @@
-classdef FileTableAct < FileTable
+classdef FileTable_Act < FileTable
     %% Methods
     methods
         %% Constructor
-        function obj = FileTableAct(topDir, varargin)
+        function obj = FileTable_Act(topDir, varargin)
             if nargin < 1
                 topDisk = mfilename('fullpath');
                 userDir = regexp(topDisk, '.*Fei', 'match', 'once');
@@ -13,18 +13,18 @@ classdef FileTableAct < FileTable
             % Filter the table to keep only the ActMap folders
             obj.Filter('path', @(X)contains(X, 'ActMap')&contains(X, '.mat'));
             % Add nTrial to the table
-            obj.AddNtrial();
+            obj.AddTrialType();
             % Add mvtDir to the table
             obj.AddMvtDir();
             % Add actType to the table
             obj.AddActType();
-            obj.AddGroupInfo('1xbaLWzdmBQ-1Klv_2I2YOco51lpTwndMM7ZfOwqFW6c');
+            %obj.AddGroupInfo('1xbaLWzdmBQ-1Klv_2I2YOco51lpTwndMM7ZfOwqFW6c');
         end
 
         %% Add Ntrial to the table
-        function AddNtrial(obj)
-            findNtrial = @(X)regexp(X, '(?<=Trial).*?(?=\\)', 'match', 'once');
-            obj.fileTable.nTrial = findNtrial(obj.fileTable.path);
+        function AddTrialType(obj)
+            findTrialType = @(X)regexp(X, '(?<=Trial).*?(?=\\)', 'match', 'once');
+            obj.fileTable.trialType = findTrialType(obj.fileTable.path);
         end
 
         %% Add mvtDir to the table
@@ -38,18 +38,21 @@ classdef FileTableAct < FileTable
             obj.fileTable.actType = findActType(obj.fileTable.folder);
         end
         %% Function add group information to the table
-        function AddGroupInfo(obj, groupInfoSheetId)
-            groupInfo = readGoogleSheet(groupInfoSheetId);
+        function obj = AddGroupInfo(obj, sheetName)
+            
+            groupInfoSheetId = '1xbaLWzdmBQ-1Klv_2I2YOco51lpTwndMM7ZfOwqFW6c';
+            
+            groupInfo = readGoogleSheet(groupInfoSheetId,sheetName);
             groupInfo = convertvars(groupInfo, 'session', @(X)cellstr(string(X)));
 
             if ~ismember('group', obj.fileTable.Properties.VariableNames)
                 obj.fileTable = innerjoin(obj.fileTable, groupInfo);
             end
-            obj.CleanVar('problematicTrials', 'remove')
+            obj.CleanVar('problematicTrials', 'remove');
         end
 
         %% Function calculate delta F over F
-        function CalDeltaFoverF(obj, varargin)
+        function obj = CalDeltaFoverF(obj, varargin)
             calDeltaFoverF(obj.fileTable.path, varargin{:});
         end
 
@@ -65,16 +68,6 @@ classdef FileTableAct < FileTable
             obj.fileTable = loadDeltaFoverF(obj.fileTable, varargin{:});
             % Notify the user that loading is done and how long it took
             fprintf('   Loading deltaFoverF from %d files took %.2f seconds\n', height(obj.fileTable), toc)
-        end
-        
-        function obj = LoadIMcorr(obj, varargin)
-            % Notify the user that files are being loaded
-            fprintf('   Loading IMcorr from %d files\n', height(obj.fileTable))
-            tic;
-            % Load deltaFoverF
-            obj.fileTable = loadIMcorr(obj.fileTable, varargin{:});
-            % Notify the user that loading is done and how long it took
-            fprintf('   Loading IMcorr from %d files took %.2f seconds\n', height(obj.fileTable), toc)
         end
     end
 

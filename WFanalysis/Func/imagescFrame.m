@@ -10,12 +10,11 @@ function imagescFrame(frameData, options)
         options.colorbarLabel {mustBeTextScalar} = '\DeltaF/F'
         options.abmTemplate (1,1) {mustBeNumericOrLogical} = true
     end
-
-    if isempty(options.clim)
-        options.clim = [min(frameData(:)), max(frameData(:))];
-        options.clim = max(abs(options.clim)) * [-1, 1];
+    % if frameData if all NaNs, then just plot a blank image
+    if all(frameData(:) == 0) || all(isnan(frameData(:)))
+        frameData = zeros(size(frameData));
+        options.clim = [-1, 1];
     end
-
     % plot the frame
     im = imagesc(options.ax, frameData, options.clim);
     set(im, 'AlphaData', ~isnan(frameData));

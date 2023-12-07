@@ -3,6 +3,7 @@ classdef Param < handle
     properties
         folderUser
         folderParent
+        folderFigure
         folderName
         dataDrive
         select
@@ -21,8 +22,7 @@ classdef Param < handle
         function obj = Param(varargin)
             %% parse input
             p = inputParser;
-            addOptional(p, 'folderName', '', @ischar);
-            addParameter(p, 'dataDrive', 'D', @(X)mustBeMember(X, {'D', 'E', 'F'}));
+            addParameter(p, 'folderName', '', @ischar);
             addParameter(p, 'mouse', '', @(X)ischar(X) | isstring(X) | iscellstr(X));
             addParameter(p, 'session', '', @(X)ischar(X) | isstring(X) | iscellstr(X) | isnumeric(X));
             parse(p, varargin{:});
@@ -34,8 +34,8 @@ classdef Param < handle
             fullPath = strsplit(fullPath, '\');
             obj.folderUser = fullfile(fullPath{1:3});
             obj.folderParent = fullfile(obj.folderUser, 'DataAnalysis');
+            obj.folderFigure = fullfile(obj.folderParent, 'Figures');
             obj.folderName = p.Results.folderName;
-            obj.dataDrive = p.Results.dataDrive;
 
             %% select mouse and session
             obj.select.mouse = p.Results.mouse;
@@ -63,18 +63,16 @@ classdef Param < handle
         function dir = get.dir(obj)
 
             dir.bp = fullfile(obj.folderUser, 'Bpod\Bpod Local\Data\'); % directory of bpod data
-            dir.wf = fullfile([obj.dataDrive, ':\Data\'], 'WFrecordings'); % directory of widefield video recordings
-            dir.bk = fullfile([obj.dataDrive, ':\Data\'], 'WFrecordings\FakeSubject'); % directory of backup folderPath to store wf recordings with problem
             dir.refImage = fullfile(obj.folderParent, 'Utilities\RefImage'); % directory of reference images
             dir.regXy = fullfile(obj.folderParent, 'Utilities\RegXy'); % directory of coordinate registration files
             dir.actMap.raw = fullfile(obj.folderPath, 'ActMap\Raw'); % directory of activation maps: raw
             dir.actMap.reg = fullfile(obj.folderPath, 'ActMap\Reg'); % directory of activation maps: registered
-            dir.actMap.rawDiff = fullfile(obj.folderPath, 'ActMap\RawDiff'); % directory of activation maps: raw difference
-            dir.actMap.regDiff = fullfile(obj.folderPath, 'ActMap\RegDiff'); % directory of activation maps: registered difference
+            % dir.actMap.rawDiff = fullfile(obj.folderPath, 'ActMap\RawDiff'); % directory of activation maps: raw difference
+            % dir.actMap.regDiff = fullfile(obj.folderPath, 'ActMap\RegDiff'); % directory of activation maps: registered difference
             dir.actRoi.raw = fullfile(obj.folderPath, 'ActRoi\Raw'); % directory of activation ROI: raw
             dir.actRoi.reg = fullfile(obj.folderPath, 'ActRoi\Reg'); % directory of activation ROI: registered
-            dir.actRoi.rawDiff = fullfile(obj.folderPath, 'ActRoi\RawDiff'); % directory of activation ROI: raw difference
-            dir.actRoi.regDiff = fullfile(obj.folderPath, 'ActRoi\RegDiff'); % directory of activation ROI: registered difference
+            % dir.actRoi.rawDiff = fullfile(obj.folderPath, 'ActRoi\RawDiff'); % directory of activation ROI: raw difference
+            % dir.actRoi.regDiff = fullfile(obj.folderPath, 'ActRoi\RegDiff'); % directory of activation ROI: registered difference
         end
 
         % path

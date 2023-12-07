@@ -1,9 +1,9 @@
-classdef FileTableBpod < FileTable
+classdef FileTable_Bpod < FileTable
 
     %% Methods
     methods
         %% Constructor
-        function obj = FileTableBpod(topDir, varargin)
+        function obj = FileTable_Bpod(topDir, varargin)
             if nargin < 1
                 topDisk = mfilename('fullpath');
                 userDir = regexp(topDisk, '.*Fei', 'match', 'once');

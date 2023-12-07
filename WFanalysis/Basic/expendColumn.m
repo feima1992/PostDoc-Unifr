@@ -27,7 +27,11 @@ function expendedTable = expendColumn(aTable, var)
         tablePart2 = aTable{i, var};
 
         % hCombine
-        expendedTable = [expendedTable; hCombineTable(tablePart1, tablePart2{1})];
+        if iscell(tablePart2)
+            expendedTable = [expendedTable; hCombineTable(tablePart1, tablePart2{1})];
+        elseif istable(tablePart2)
+            expendedTable = [expendedTable; hCombineTable(tablePart1, tablePart2)];
+        end
     end
 
 end

@@ -1,4 +1,4 @@
-classdef ActRaw< handle
+classdef Align < handle
     %% Properties
     properties
         param % parameters for the analysis
@@ -10,13 +10,14 @@ classdef ActRaw< handle
     %% Methods
     methods
         %% Constructor
-        function obj = ActRaw(param, wfTable, bpodTable)
+        function obj = Align(param, wfTable, bpodTable)
             % validate the input
             arguments
-                param (1,1) Param
-                wfTable (1,1) FileTableTifWf
-                bpodTable (1,1) FileTableBpod
+                param (1, 1) Param
+                wfTable (1, 1) FileTable_Tif_Wf
+                bpodTable (1, 1) FileTable_Bpod
             end
+
             % assign values
             obj.param = param; % parameters for the analysis
             obj.wfTable = wfTable; % table of wf images
@@ -27,17 +28,17 @@ classdef ActRaw< handle
                 obj.bpodTable.LoadFile(); % load the bpod data file
                 obj.bpodTable.CleanVar({'path', 'folder', 'fileTable', 'namefull'}, 'remove'); % remove the unused variables
             end
+
             % combine the wf and bpod table
             obj.wfBpodTable = innerjoin(obj.wfTable.fileTable, obj.bpodTable.fileTable, 'Keys', {'mouse', 'session', 'trial'});
             % remove the trials with unmatched duration
             obj.RemoveUnmatchedDurationTrials();
             % get the path of actRaw
-            obj.wfBpodTable.pathActRawMat = cellfun(@(X,Y)fullfile(param.dir.actMap.raw, [X, '_', Y, '_ACT.mat']), obj.wfBpodTable.mouse, obj.wfBpodTable.session, 'UniformOutput', false);
-            obj.wfBpodTable.pathActRawTif = cellfun(@(X,Y)fullfile(param.dir.actMap.raw, [X, '_', Y, '_ACT.tif']), obj.wfBpodTable.mouse, obj.wfBpodTable.session, 'UniformOutput', false);
+            obj.wfBpodTable.pathActRawMat = cellfun(@(X, Y)fullfile(param.dir.actMap.raw, [X, '_', Y, '_ACT.mat']), obj.wfBpodTable.mouse, obj.wfBpodTable.session, 'UniformOutput', false);
+            obj.wfBpodTable.pathActRawTif = cellfun(@(X, Y)fullfile(param.dir.actMap.raw, [X, '_', Y, '_ACT.tif']), obj.wfBpodTable.mouse, obj.wfBpodTable.session, 'UniformOutput', false);
         end
-
-        %% Function Align
-        function Align(obj)
+        
+        function obj = AlignWfBpod(obj)
             % group the data by mouse and session
             groupIdx = findgroups(obj.wfBpodTable(:, {'mouse', 'session'}));
             % align the data for each group
@@ -49,20 +50,24 @@ classdef ActRaw< handle
             end
 
         end
-        
+
         %% Function register with alle brain atlas
-        function Reg(obj)
+        function Reg(obj, windowType)
+            % validate the input
+            if nargin < 2
+                windowType = 'clearSkull';
+            end
             % construct path to corresponding output REG files
             funcRegActName = @(x) strrep(strrep(x, 'ACT', 'REG'), 'Raw', 'Reg');
             obj.wfBpodTable.pathReg = cellfun(funcRegActName, obj.wfBpodTable.pathActRawMat, 'UniformOutput', false);
             obj.wfBpodTable.pathRegExist = cellfun(@(x) isfile(x), obj.wfBpodTable.pathReg);
             % construct path to corresponding refrerence images
-            funcRefActName = @(x,y) fullfile(Param().dir.refImage, [x, '_',y, '_REF.tif']);
-            obj.wfBpodTable.pathRef = cellfun(funcRefActName, obj.wfBpodTable.mouse,obj.wfBpodTable.session, 'UniformOutput', false);
+            funcRefActName = @(x, y) fullfile(Param().dir.refImage, [x, '_', y, '_REF.tif']);
+            obj.wfBpodTable.pathRef = cellfun(funcRefActName, obj.wfBpodTable.mouse, obj.wfBpodTable.session, 'UniformOutput', false);
             % filter out files that already have a REG file
             obj.wfBpodTable = obj.wfBpodTable(~obj.wfBpodTable.pathRegExist, :);
             % wfBpodTableForReg
-            wfBpodTableForReg = unique(cleanVar(obj.wfBpodTable,{'pathActRawMat','pathActRawTif','pathRef'},'keep'));
+            wfBpodTableForReg = unique(cleanVar(obj.wfBpodTable, {'pathActRawMat', 'pathActRawTif', 'pathRef'}, 'keep'));
 
             % for each file in filesActPath register coordinates with allen atlas
             screenSize = get(0, 'Screensize');
@@ -73,7 +78,12 @@ classdef ActRaw< handle
                 close all
                 fprintf('  Registration for \n    %s\n', wfBpodTableForReg.pathActRawMat{i})
 
-                objReg = RegActRaw(wfBpodTableForReg.pathRef{i}, wfBpodTableForReg.pathActRawTif{i}, Param());
+                switch windowType
+                    case 'clearSkull'
+                        objReg = regActRawClearSkull(wfBpodTableForReg.pathRef{i}, wfBpodTableForReg.pathActRawTif{i}, Param());
+                    case 'cranialWindow'
+                        objReg = regActRawCranialWindow(wfBpodTableForReg.pathRef{i}, wfBpodTableForReg.pathActRawTif{i}, Param());
+                end
 
                 set(findobj('Name', 'WF registration'), 'Position', guiPosition);
                 waitfor(objReg, 'objButtonRegFlag', 1);
@@ -83,26 +93,52 @@ classdef ActRaw< handle
             close all
             fprintf('   Registration complete\n')
         end
+
     end
 
-    methods(Access = private)
+    methods (Access = private)
         %% Function remove umatched duration trials
         function obj = RemoveUnmatchedDurationTrials(obj)
             % filter out trials with duration_left and duration_right that are not matched (difference > 0.1)
-            unMatchTrials = filterRow(obj.wfBpodTable, {'duration_left','duration_right'}, @(X,Y)abs(X-Y)>0.1).path;
+            unMatchTrials = filterRow(obj.wfBpodTable, {'duration_left', 'duration_right'}, @(X, Y)abs(X - Y) > 0.1).path;
+
+            % display the unMatchTrials if greater than 20 trials
+            if length(unMatchTrials) > 20
+                fprintf('   %d trials with unmatched duration\n', length(unMatchTrials))
+                % raise dialog to ask user if want to continue moving the unMatchTrials to the backup folder
+                choice = questdlg('Do you want to move the unMatchTrials to the backup folder?', 'Unmatched duration trials', 'Yes', 'No', 'No');
+                % Handle response
+                switch choice
+                    case 'Yes'
+                        % continue
+                    case 'No'
+                        % debug here
+                        keyboard
+                end
+
+            end
             % move the unMatchTrials to the backup folder
-            backupFolder = Param().dir.bk;
             for i = 1:length(unMatchTrials)
+
+                backupTarget = insertAfter(unMatchTrials{i},'WFrecordings\','unMatchTrials\');
+                backupFolder = fileparts(backupTarget);
+                if ~ exist(backupFolder,'dir')
+                    mkdir(backupFolder)
+                end
+
                 try
-                    movefile(unMatchTrials{i}, backupFolder);
+                    movefile(unMatchTrials{i}, backupTarget);
                 catch
                     continue;
                 end
+
             end
+
             % remove the unMatchTrials from the table
             obj.wfBpodTable = filterRow(obj.wfBpodTable, {'path'}, @(X) ~ismember(X, unMatchTrials));
 
         end
+
     end
 
 end

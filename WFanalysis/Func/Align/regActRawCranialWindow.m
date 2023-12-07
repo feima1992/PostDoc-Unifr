@@ -1,4 +1,4 @@
-classdef RegActRaw < handle
+classdef regActRawCranialWindow < handle
 
     properties
         images;
@@ -21,7 +21,7 @@ classdef RegActRaw < handle
 
     methods
         % constructor
-        function obj = RegActRaw(varargin)
+        function obj = regActRawCranialWindow(varargin)
 
             obj.objButtonRegFlag = 0; % set the REG button clicked flag to 0
 
@@ -43,10 +43,10 @@ classdef RegActRaw < handle
                 obj.P = varargin{3};
             end
 
-            obj.params.XYref = [[256 220]; [256 380]; [98 114]; [414 114]; [256 55]];
+            obj.params.XYref = [[256 220]; [256 380]];
             obj.params.Npts = size(obj.params.XYref, 1);
             obj.params.XYrefCTX = obj.params.XYref;
-            obj.params.cols = {[0.9 0.62 0], [0.34 0.71 0.91], [0 0.62 0.45], [0.94 0.89 0.26], [0 0.45 0.70], [0.84 0.37 0], [0.8 0.48 0.65]};
+            obj.params.cols = {[0.9 0.62 0], [0.34 0.71 0.91]};
             obj.params.hXY = zeros(obj.params.Npts, 1);
 
             obj.params.IDselect = 0;
@@ -140,12 +140,12 @@ classdef RegActRaw < handle
 
             obj.objButtonReg = uicontrol(p, 'Style', 'pushbutton', 'Position', [320, 2, 20, 15], 'Units', 'normalized');
             obj.objButtonReg.String = 'REG IT';
-            set(obj.objButtonReg, 'Callback', {@obj.affineRegisterCallback, 'affine'});
+            set(obj.objButtonReg, 'Callback', {@obj.registerCallback, 'affine'});
 
             % try auto load REGcoords
             try
                 autoLoadREGcoords(obj);
-                affineRegister(obj, 'affine');
+                register(obj, 'affine');
                 % pause 5 second to let user see the result
                 pause(5);
                 obj.objButtonRegFlag = 1;
@@ -235,12 +235,12 @@ classdef RegActRaw < handle
             set(obj.params.Hax_CTXreg, 'CLim', Lims);
         end
 
-        function affineRegisterCallback(obj, src, evt, type)
-            affineRegister(obj, type);
+        function registerCallback(obj, src, evt, type)
+            register(obj, type);
             obj.objButtonRegFlag = 1;
         end
 
-        function affineRegister(obj, type)
+        function register(obj, type)
             %% register UI for peak act to visually check registration
             % 'affine' or 'pwl'
             tform = fitgeotrans(obj.params.XYrefCTX, obj.params.XYref, type);
